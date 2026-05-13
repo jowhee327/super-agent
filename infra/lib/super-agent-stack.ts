@@ -318,14 +318,26 @@ export class SuperAgentStack extends cdk.Stack {
       });
       frontendBucket.grantReadWrite(role); // for deploy script S3 sync
 
+      // Resolve the effective record name + zone name.
+      // If the operator passes the apex domain (e.g. domainName=textin.ai),
+      // creating an A record at the apex would clash with any existing
+      // apex record. Auto-prefix "app." in that case.
+      // The hosted zone name is derived by stripping the leftmost label
+      // when there are >2 labels (super.example.com -> example.com),
+      // otherwise the domain itself IS the zone (textin.ai -> textin.ai).
+      const labels = domainName!.split('.');
+      const isApex = labels.length <= 2;
+      const effectiveDomain = isApex ? `app.${domainName}` : domainName!;
+      const zoneName = isApex ? domainName! : labels.slice(1).join('.');
+
       // ACM certificate (must be us-east-1 for CloudFront)
       const hostedZone = route53.HostedZone.fromHostedZoneAttributes(this, 'HostedZone', {
         hostedZoneId: hostedZoneId!,
-        zoneName: domainName!.split('.').slice(1).join('.'), // extract parent domain
+        zoneName,
       });
 
       const certificate = new acm.DnsValidatedCertificate(this, 'Certificate', {
-        domainName: domainName!,
+        domainName: effectiveDomain,
         hostedZone,
         region: 'us-east-1', // CloudFront requires us-east-1
       });
@@ -347,7 +359,7 @@ export class SuperAgentStack extends cdk.Stack {
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         },
-        domainNames: [domainName!],
+        domainNames: [effectiveDomain],
         certificate,
         defaultRootObject: 'index.html',
         errorResponses: [
@@ -384,7 +396,7 @@ export class SuperAgentStack extends cdk.Stack {
       // Route53 ALIAS → CloudFront
       new route53.ARecord(this, 'DnsAlias', {
         zone: hostedZone,
-        recordName: domainName!,
+        recordName: effectiveDomain,
         target: route53.RecordTarget.fromAlias(new route53targets.CloudFrontTarget(distribution)),
       });
     }
