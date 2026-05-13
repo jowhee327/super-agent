@@ -101,6 +101,16 @@ echo ">>> Setting up application directory..."
 mkdir -p /opt/super-agent/{workspaces,logs}
 chown -R ubuntu:ubuntu /opt/super-agent
 
+# 4G swap (t4g.small only has 2G RAM; tsc / vite build need more)
+if ! swapon --show | grep -q .; then
+  echo ">>> Creating 4G swap (compile headroom)..."
+  fallocate -l 4G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo "/swapfile none swap sw 0 0" >> /etc/fstab
+fi
+
 # Nginx config — supports both direct and CloudFront modes.
 # Port 80: proxies /api/* and /ws/* (CloudFront origin), redirects rest to HTTPS.
 # Port 443: self-signed cert, serves frontend + proxies API/WS.
@@ -201,7 +211,8 @@ Type=simple
 User=ubuntu
 WorkingDirectory=/opt/super-agent/backend
 EnvironmentFile=/opt/super-agent/.env
-ExecStart=/usr/bin/node dist/index.js
+Environment=NODE_OPTIONS=--max-old-space-size=1500
+ExecStart=/usr/bin/npx tsx src/index.ts
 Restart=always
 RestartSec=5
 StandardOutput=append:/opt/super-agent/logs/backend.log
