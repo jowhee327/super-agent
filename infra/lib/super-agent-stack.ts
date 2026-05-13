@@ -185,7 +185,13 @@ export class SuperAgentStack extends cdk.Stack {
 
     role.addToPolicy(new iam.PolicyStatement({
       actions: ['secretsmanager:GetSecretValue', 'secretsmanager:DescribeSecret'],
-      resources: [dbInstance.secret!.secretArn, `${dbInstance.secret!.secretArn}*`],
+      // Wildcard ARN by stack-name convention. Avoid referencing
+      // dbInstance.secret directly here — doing so would create a
+      // circular dependency once we add `dbInstance.node.addDependency(instance)`
+      // for fail-fast deploy ordering (RDS → EC2 → Role → DB Secret → RDS).
+      // Secret name is `${id}/db-credentials` per the rds.Credentials config below,
+      // and AWS auto-appends a 6-char suffix on creation so we glob it with `-*`.
+      resources: [`arn:aws:secretsmanager:${this.region}:${this.account}:secret:${id}/db-credentials-*`],
     }));
 
     role.addToPolicy(new iam.PolicyStatement({
