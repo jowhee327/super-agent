@@ -11,7 +11,7 @@
   "auth": {
     "type": "connection_string",
     "credential_fields": [
-      { "key": "host", "label": { "en": "Host", "cn": "Host" }, "type": "text", "placeholder": "my-cluster.xxx.us-east-1.redshift.amazonaws.com", "required": true },
+      { "key": "host", "label": { "en": "Host", "cn": "Host" }, "type": "text", "placeholder": "my-cluster.xxx.ap-northeast-1.redshift.amazonaws.com", "required": true },
       { "key": "port", "label": { "en": "Port", "cn": "Port" }, "type": "number", "placeholder": "5439", "required": false },
       { "key": "database", "label": { "en": "Database", "cn": "Database" }, "type": "text", "placeholder": "dev", "required": true },
       { "key": "username", "label": { "en": "Username", "cn": "Username" }, "type": "text", "required": true },

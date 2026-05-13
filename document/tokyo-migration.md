@@ -33,9 +33,12 @@
 | `infra/scripts/deploy-full.sh` AgentCore env `ANTHROPIC_MODEL` | 同上 | 同上 |
 | `infra/scripts/setup-litellm.sh` LiteLLM 模型表 | `us.*` | `jp.*` / `global.*` |
 
-### Embedder 降级
-- `backend/src/services/bedrock-embedder.ts`：东京区**没有** `nova-2-multimodal-embeddings`，默认改为 `amazon.titan-embed-text-v2:0`（区域内可用）。可通过 `BEDROCK_EMBED_MODEL_ID` 环境变量覆盖。
-- ⚠️ Titan v2 是**纯文本** embedder，如果系统真用到了多模态 embedding，需要把 embedder 客户端 region 显式指到 `us-east-1` 跨区调用。
+### Embedder 区域 Pin（重要）
+- `backend/src/services/bedrock-embedder.ts`：东京区**没有** `nova-2-multimodal-embeddings`。
+  - **不能换模型**：Nova Multimodal 与 Titan v2 的请求/响应 body 协议不同，且即使维度相同，向量空间不同会破坏现有 pgvector 数据。
+  - **方案**：embedder 客户端**跨区 pin 到 `us-east-1`**（默认值），可通过 `BEDROCK_EMBED_REGION` env 覆盖。其他 Bedrock 调用仍走部署区。
+  - 影响范围：`rag/document-indexer`（知识库）、`rag/rag-retriever`（向量检索）、`vector-memory.service`（Scope 长期记忆）。
+- 这是和 Nova Canvas（`avatarService.ts` 固定 `us-east-1`）相同的处理模式。
 
 ### 测试
 - `backend/tests/unit/claude-config.test.ts` 期望值同步更新。
@@ -51,7 +54,29 @@
 ## 保留的 us-east-1 引用（合理）
 
 - `infra/lib/super-agent-stack.ts` ACM 证书 → CloudFront 强制 us-east-1，**不要改**
-- `backend/AWS_SETUP.md` / `document/bedrock-api-key-migration.md` 提到 Nova Canvas 固定 us-east-1，是 SDK 客户端层的 region pin，跨区调用，与部署区无关
+- `backend/src/services/avatarService.ts` Nova Canvas client 锥 us-east-1（区域 pin）
+- `backend/src/services/bedrock-embedder.ts` Nova Multimodal Embeddings 锥 us-east-1（默认跨区，`BEDROCK_EMBED_REGION` 可覆盖）
+- `backend/AWS_SETUP.md:99-101` Nova Canvas 说明文案
+- `document/bedrock-api-key-migration.md:44,174` Nova Canvas 区域 pin 变更说明
+
+## 第二轮补丢（v2）
+
+针对 Codex review 发现的遗漏，补改了：
+
+- `backend/src/config/index.ts` `COGNITO_REGION` / `AWS_REGION` 默认 → `ap-northeast-1`
+- `agentcore/src/agent-runner.ts` workspace S3 region fallback 与 `index.ts` 对齐
+- `agentcore/Dockerfile` `ANTHROPIC_MODEL` / `WORKSPACE_S3_REGION` 默认值
+- `.github/workflows/deploy-test.yml` `AWS_REGION` 默认
+- `frontend/src/data/mcp-servers.ts` AWS MCP server 通用 `AWS_REGION` 默认东京（Postgres / MySQL inline 也同步）
+- `frontend/src/services/cognito.ts` Hosted UI region fallback
+- `backend/src/services/avatarService.ts` / `routes/avatarRoutes.ts` 头像 S3 region fallback
+- `backend/src/services/project.service.ts` AgentCore workspace S3 fallback（两处）
+- `backend/src/services/agentcore-command.service.ts` 容器内 S3 下载脚本 fallback
+- `backend/.env.example` Cognito / AWS_REGION / AgentCore ARN / ECR / Haiku 示例
+- `backend/AWS_SETUP.md` AWS_REGION 示例改东京（保留 Nova Canvas 说明）
+- `document/bedrock-api-key-migration.md` 本地 / CI/CD / CloudTrail 示例
+- `frontend/src/components/ConnectorPanel.tsx` placeholder
+- `backend/connector-packages/{redshift,sagemaker,_template}/manifest.json` placeholder
 
 ## 待 Reviewer 确认
 

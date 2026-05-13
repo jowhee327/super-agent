@@ -28,7 +28,7 @@ export class AvatarService {
   /** Lazy init — ensures process.env is populated (dotenv / systemd EnvironmentFile). */
   private ensureInit(): void {
     if (this.initialized) return;
-    const region = process.env.AWS_REGION || "us-west-2";
+    const region = process.env.AWS_REGION || "ap-northeast-1";
     this.bucketName = process.env.S3_AVATARS_BUCKET || process.env.S3_BUCKET_NAME || "super-agent-avatars";
 
     console.log('AvatarService initialized:', {

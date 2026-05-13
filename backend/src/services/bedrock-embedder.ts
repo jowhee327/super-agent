@@ -3,25 +3,26 @@
  *
  * Model: amazon.nova-2-multimodal-embeddings-v1:0
  * Dimensions: 1024 (configurable: 256, 384, 1024, 3072)
+ *
+ * Region pin: nova-2-multimodal-embeddings is NOT available in ap-northeast-1
+ * (Tokyo). The embedder client is therefore pinned cross-region — by default
+ * to us-east-1 (override via BEDROCK_EMBED_REGION env). Using a different
+ * model on Tokyo would change embedding semantics and dimensions, breaking
+ * pgvector compatibility for stored RAG / scope memory vectors.
  */
 
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from '@aws-sdk/client-bedrock-runtime';
-import { config } from '../config/index.js';
 import { createBedrockClient } from './bedrock-client.js';
 
-// Tokyo (ap-northeast-1) does not have nova-2-multimodal-embeddings.
-// Falling back to Titan Text Embeddings V2 which is available in-region.
-// NOTE: Titan v2 is text-only. If multimodal embeddings are required, run
-// the embedder against a region that hosts nova-2-multimodal (e.g. us-east-1)
-// by overriding via createBedrockClient({ region: 'us-east-1' }).
-const MODEL_ID = process.env.BEDROCK_EMBED_MODEL_ID ?? 'amazon.titan-embed-text-v2:0';
+const MODEL_ID = process.env.BEDROCK_EMBED_MODEL_ID ?? 'amazon.nova-2-multimodal-embeddings-v1:0';
+const EMBED_REGION = process.env.BEDROCK_EMBED_REGION ?? 'us-east-1';
 const EMBEDDING_DIMENSION = 1024;
 
-// Shared Bedrock client (API Key > AK/SK > default provider chain).
-const bedrockClient: BedrockRuntimeClient = createBedrockClient({ region: config.aws.region });
+// Cross-region pinned client — see header comment.
+const bedrockClient: BedrockRuntimeClient = createBedrockClient({ region: EMBED_REGION });
 
 export async function embedText(text: string): Promise<number[]> {
   const body = {

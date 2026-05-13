@@ -21,7 +21,12 @@ const DEFAULT_TOOLS = [
   'TodoWrite', 'ToolSearch', 'NotebookEdit',
 ];
 
-const s3 = new S3Client({ region: process.env.WORKSPACE_S3_REGION ?? 'us-east-1' });
+// Workspace S3 client. Region resolution falls through:
+//   WORKSPACE_S3_REGION → AWS_REGION → ap-northeast-1 (Tokyo default).
+// Must stay aligned with index.ts so download/upload use the same region.
+const s3 = new S3Client({
+  region: process.env.WORKSPACE_S3_REGION ?? process.env.AWS_REGION ?? 'ap-northeast-1',
+});
 
 // ---------------------------------------------------------------------------
 // SDK Hooks for S3 sync (replaces file-watcher.ts)

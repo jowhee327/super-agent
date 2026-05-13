@@ -28,7 +28,7 @@ Generate a Bedrock API Key in the AWS console (Bedrock → API Keys) and add to
 `.env`:
 
 ```bash
-AWS_REGION=us-east-1
+AWS_REGION=ap-northeast-1
 BEDROCK_API_KEY=ABSKQmVkcm9ja0FQSUtleS...
 
 # Still needed for S3, Cognito, etc. (or use an EC2 instance role)
@@ -47,7 +47,7 @@ Benefits:
 Classic SigV4 credentials:
 
 ```bash
-AWS_REGION=us-east-1
+AWS_REGION=ap-northeast-1
 AWS_ACCESS_KEY_ID=your_access_key_here
 AWS_SECRET_ACCESS_KEY=your_secret_key_here
 ```

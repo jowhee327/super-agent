@@ -185,7 +185,7 @@ AWS Console → Bedrock → **API Keys** → Create key。选择对应账号和 
 
 在 `backend/.env` 中：
 ```bash
-AWS_REGION=us-east-1
+AWS_REGION=ap-northeast-1
 BEDROCK_API_KEY=ABSKQmVkcm9ja0FQSUtleS...
 # AK/SK 可保留用于 S3/Cognito；Bedrock 调用会自动跳过它们
 ```
@@ -196,7 +196,7 @@ GitHub Secrets 新增 `BEDROCK_API_KEY`，由 CI 透传给 `deploy.sh` / `deploy
 ```bash
 ./infra/scripts/deploy-full.sh \
   --stack SuperAgent \
-  --region us-west-2 \
+  --region ap-northeast-1 \
   --bedrock-api-key "$BEDROCK_API_KEY"
 ```
 
@@ -303,7 +303,7 @@ fi
 2. 触发一次 Nova Lite 调用（创建 Agent 或跑 rehearsal）。
 3. 查 CloudTrail `InvokeModel` 事件：
    ```bash
-   aws --region us-east-1 cloudtrail lookup-events \
+   aws --region ap-northeast-1 cloudtrail lookup-events \
      --lookup-attributes AttributeKey=EventName,AttributeValue=InvokeModel \
      --max-results 10
    ```

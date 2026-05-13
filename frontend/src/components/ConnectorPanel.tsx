@@ -86,7 +86,7 @@ const TEMPLATES: ConnectorTemplate[] = [
       { key: 'schema', label_en: 'Schema', label_cn: 'Schema', placeholder: 'public' },
     ],
     credentialFields: [
-      { key: 'host', label_en: 'Host', label_cn: 'Host', placeholder: 'my-cluster.xxx.us-east-1.redshift.amazonaws.com', required: true },
+      { key: 'host', label_en: 'Host', label_cn: 'Host', placeholder: 'my-cluster.xxx.ap-northeast-1.redshift.amazonaws.com', required: true },
       { key: 'port', label_en: 'Port', label_cn: 'Port', placeholder: '5439', type: 'number' },
       { key: 'database', label_en: 'Database', label_cn: 'Database', placeholder: 'dev', required: true },
       { key: 'username', label_en: 'Username', label_cn: 'Username', required: true },
@@ -98,7 +98,7 @@ const TEMPLATES: ConnectorTemplate[] = [
     description_en: 'ML model inference',
     description_cn: 'ML 模型推理',
     configFields: [
-      { key: 'region', label_en: 'AWS Region', label_cn: 'AWS Region', placeholder: 'us-east-1', required: true },
+      { key: 'region', label_en: 'AWS Region', label_cn: 'AWS Region', placeholder: 'ap-northeast-1', required: true },
       { key: 'endpoint_name', label_en: 'Endpoint Name', label_cn: 'Endpoint Name', placeholder: 'my-model-endpoint' },
     ],
     credentialFields: [

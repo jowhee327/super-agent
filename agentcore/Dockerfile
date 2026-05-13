@@ -18,8 +18,8 @@ RUN npm install -g @anthropic-ai/claude-code
 
 # Claude Code Bedrock configuration
 ENV CLAUDE_CODE_USE_BEDROCK=1 \
-    ANTHROPIC_MODEL=us.anthropic.claude-opus-4-6-v1 \
-    WORKSPACE_S3_REGION=us-west-2
+    ANTHROPIC_MODEL=global.anthropic.claude-opus-4-6-v1 \
+    WORKSPACE_S3_REGION=ap-northeast-1
 
 # Install Node.js dependencies (include dev for TypeScript build)
 COPY package*.json ./
