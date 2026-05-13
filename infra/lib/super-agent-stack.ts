@@ -128,7 +128,7 @@ export class SuperAgentStack extends cdk.Stack {
       maxAllocatedStorage: 50,
       storageType: rds.StorageType.GP3,
       storageEncrypted: true,
-      multiAz: true,
+      multiAz: false,
       publiclyAccessible: false,
       backupRetention: cdk.Duration.days(7),
       removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
@@ -143,18 +143,14 @@ export class SuperAgentStack extends cdk.Stack {
       cacheSubnetGroupName: `${id}-redis-subnets`.toLowerCase(),
     });
 
-    const redisCluster = new cdk.aws_elasticache.CfnReplicationGroup(this, 'RedisCluster', {
-      replicationGroupId: `${id}-redis`.toLowerCase(),
-      replicationGroupDescription: 'Super Agent Redis (multi-AZ, primary + replica auto-failover)',
+    const redisCluster = new cdk.aws_elasticache.CfnCacheCluster(this, 'RedisCluster', {
       engine: 'redis',
-      engineVersion: '7.1',
       cacheNodeType: 'cache.t4g.micro',
-      numNodeGroups: 1,
-      replicasPerNodeGroup: 1,
-      automaticFailoverEnabled: true,
-      multiAzEnabled: true,
+      numCacheNodes: 1,
+      clusterName: `${id}-redis`.toLowerCase(),
+      vpcSecurityGroupIds: [redisSg.securityGroupId],
       cacheSubnetGroupName: redisSubnetGroup.cacheSubnetGroupName,
-      securityGroupIds: [redisSg.securityGroupId],
+      engineVersion: '7.1',
       port: 6379,
     });
     redisCluster.addDependency(redisSubnetGroup);
@@ -443,8 +439,8 @@ export class SuperAgentStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'AvatarBucketName', { value: avatarBucket.bucketName });
     new cdk.CfnOutput(this, 'SkillsBucketName', { value: skillsBucket.bucketName });
     new cdk.CfnOutput(this, 'WorkspaceBucketName', { value: workspaceBucket.bucketName });
-    new cdk.CfnOutput(this, 'RedisEndpoint', { value: redisCluster.attrPrimaryEndPointAddress });
-    new cdk.CfnOutput(this, 'RedisPort', { value: redisCluster.attrPrimaryEndPointPort });
+    new cdk.CfnOutput(this, 'RedisEndpoint', { value: redisCluster.attrRedisEndpointAddress });
+    new cdk.CfnOutput(this, 'RedisPort', { value: redisCluster.attrRedisEndpointPort });
     new cdk.CfnOutput(this, 'AuthMode', { value: authMode });
     new cdk.CfnOutput(this, 'EnableCdn', { value: enableCdn ? 'true' : 'false' });
 
