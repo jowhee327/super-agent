@@ -74,7 +74,7 @@ cd /path/to/super-agent
 ### 部署流程（3 个阶段）
 
 **Phase 1: CDK Deploy**
-- 创建 VPC Security Groups、EC2 (t4g.small ARM64)、EIP
+- 创建 VPC Security Groups、EC2 (m8g.medium ARM64 Graviton 4)、EIP
 - RDS PostgreSQL 16.6、ElastiCache Redis 7.1
 - S3 桶（Avatar、Skills、Workspace、Frontend）
 - CloudFront + ACM 证书 + Route53 ALIAS

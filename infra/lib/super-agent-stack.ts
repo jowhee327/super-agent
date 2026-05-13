@@ -17,7 +17,7 @@ import * as path from 'path';
  * SuperAgentStack — unified deployment with optional CloudFront CDN.
  *
  * Core resources (always created):
- *   VPC (default), Security Groups, EC2 (t4g.small), EIP, RDS PostgreSQL,
+ *   VPC (default), Security Groups, EC2 (m8g.medium ARM64 Graviton 4), EIP, RDS PostgreSQL,
  *   S3 avatar bucket, IAM role, Nginx, Redis, systemd service.
  *
  * Optional Cognito (authMode=cognito):
@@ -381,8 +381,14 @@ export class SuperAgentStack extends cdk.Stack {
 
     const instance = new ec2.Instance(this, 'SuperAgentInstance', {
       vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.SMALL),
+      // Skip ap-northeast-1a — Tokyo's oldest AZ frequently throws InsufficientInstanceCapacity
+      // for small ARM64 instances. ec2.describe-instance-type-offerings says 1a/1c/1d all
+      // support m8g.medium, but 1a runs out of stock during peak hours. Pin to 1c/1d.
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PUBLIC,
+        availabilityZones: ['ap-northeast-1c', 'ap-northeast-1d'],
+      },
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.M8G, ec2.InstanceSize.MEDIUM),
       machineImage: ec2.MachineImage.fromSsmParameter(
         '/aws/service/canonical/ubuntu/server/22.04/stable/current/arm64/hvm/ebs-gp2/ami-id',
       ),

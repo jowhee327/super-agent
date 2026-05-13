@@ -101,7 +101,8 @@ echo ">>> Setting up application directory..."
 mkdir -p /opt/super-agent/{workspaces,logs}
 chown -R ubuntu:ubuntu /opt/super-agent
 
-# 4G swap (t4g.small only has 2G RAM; tsc / vite build need more)
+# 4G swap (defensive headroom; m8g.medium has 4G RAM but tsc / vite build can
+# still spike memory during install + concurrent compilation)
 if ! swapon --show | grep -q .; then
   echo ">>> Creating 4G swap (compile headroom)..."
   fallocate -l 4G /swapfile
