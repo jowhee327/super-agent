@@ -128,7 +128,7 @@ export class SuperAgentStack extends cdk.Stack {
       maxAllocatedStorage: 50,
       storageType: rds.StorageType.GP3,
       storageEncrypted: true,
-      multiAz: false,
+      multiAz: true,
       publiclyAccessible: false,
       backupRetention: cdk.Duration.days(7),
       removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
@@ -143,17 +143,34 @@ export class SuperAgentStack extends cdk.Stack {
       cacheSubnetGroupName: `${id}-redis-subnets`.toLowerCase(),
     });
 
-    const redisCluster = new cdk.aws_elasticache.CfnCacheCluster(this, 'RedisCluster', {
+    const redisCluster = new cdk.aws_elasticache.CfnReplicationGroup(this, 'RedisCluster', {
+      replicationGroupId: `${id}-redis`.toLowerCase(),
+      replicationGroupDescription: 'Super Agent Redis (multi-AZ, primary + replica auto-failover)',
       engine: 'redis',
-      cacheNodeType: 'cache.t4g.micro',
-      numCacheNodes: 1,
-      clusterName: `${id}-redis`.toLowerCase(),
-      vpcSecurityGroupIds: [redisSg.securityGroupId],
-      cacheSubnetGroupName: redisSubnetGroup.cacheSubnetGroupName,
       engineVersion: '7.1',
+      cacheNodeType: 'cache.t4g.micro',
+      numNodeGroups: 1,
+      replicasPerNodeGroup: 1,
+      automaticFailoverEnabled: true,
+      multiAzEnabled: true,
+      cacheSubnetGroupName: redisSubnetGroup.cacheSubnetGroupName,
+      securityGroupIds: [redisSg.securityGroupId],
       port: 6379,
     });
     redisCluster.addDependency(redisSubnetGroup);
+
+    // =========================================================================
+    // Fail-fast ordering: make RDS + Redis wait until the EC2 instance is
+    // created. EC2 launch is the riskiest step (InsufficientInstanceCapacity
+    // is most likely to fail here), and CFN takes 5+ minutes to roll back
+    // RDS / Redis once they have started. By gating them behind the EC2
+    // instance, an ICE on EC2 trips a fast rollback before the slow stateful
+    // resources are touched.
+    //
+    // The dependency wiring is done at the bottom of this file (after the
+    // EC2 Instance construct is declared) via
+    //   dbInstance.node.addDependency(instance)
+    //   redisCluster.node.addDependency(instance)
 
     // =========================================================================
     // IAM Role for EC2
@@ -389,7 +406,7 @@ export class SuperAgentStack extends cdk.Stack {
         subnetType: ec2.SubnetType.PUBLIC,
         availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
       },
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.M8G, ec2.InstanceSize.MEDIUM),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.M8G, ec2.InstanceSize.LARGE),
       machineImage: ec2.MachineImage.fromSsmParameter(
         '/aws/service/canonical/ubuntu/server/22.04/stable/current/arm64/hvm/ebs-gp2/ami-id',
       ),
@@ -411,6 +428,11 @@ export class SuperAgentStack extends cdk.Stack {
       instanceId: instance.instanceId,
     });
 
+    // Fail-fast: gate RDS + Redis behind EC2 so an EC2 ICE failure
+    // doesn't leave RDS / Redis half-built and slow the rollback.
+    dbInstance.node.addDependency(instance);
+    redisCluster.node.addDependency(instance);
+
     // =========================================================================
     // Outputs — always
     // =========================================================================
@@ -421,8 +443,8 @@ export class SuperAgentStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'AvatarBucketName', { value: avatarBucket.bucketName });
     new cdk.CfnOutput(this, 'SkillsBucketName', { value: skillsBucket.bucketName });
     new cdk.CfnOutput(this, 'WorkspaceBucketName', { value: workspaceBucket.bucketName });
-    new cdk.CfnOutput(this, 'RedisEndpoint', { value: redisCluster.attrRedisEndpointAddress });
-    new cdk.CfnOutput(this, 'RedisPort', { value: redisCluster.attrRedisEndpointPort });
+    new cdk.CfnOutput(this, 'RedisEndpoint', { value: redisCluster.attrPrimaryEndPointAddress });
+    new cdk.CfnOutput(this, 'RedisPort', { value: redisCluster.attrPrimaryEndPointPort });
     new cdk.CfnOutput(this, 'AuthMode', { value: authMode });
     new cdk.CfnOutput(this, 'EnableCdn', { value: enableCdn ? 'true' : 'false' });
 
