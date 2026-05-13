@@ -381,12 +381,13 @@ export class SuperAgentStack extends cdk.Stack {
 
     const instance = new ec2.Instance(this, 'SuperAgentInstance', {
       vpc,
-      // Skip ap-northeast-1a — Tokyo's oldest AZ frequently throws InsufficientInstanceCapacity
-      // for small ARM64 instances. ec2.describe-instance-type-offerings says 1a/1c/1d all
-      // support m8g.medium, but 1a runs out of stock during peak hours. Pin to 1c/1d.
+      // Default VPC has subnets in 1a/1c/1d. CDK picks the first subnet matching
+      // the filter; CFN may retry with a different subnet on InsufficientInstanceCapacity.
+      // m8g.medium is widely available in all three AZs (verified via
+      // describe-instance-type-offerings).
       vpcSubnets: {
         subnetType: ec2.SubnetType.PUBLIC,
-        availabilityZones: ['ap-northeast-1c', 'ap-northeast-1d'],
+        availabilityZones: ['ap-northeast-1a', 'ap-northeast-1c', 'ap-northeast-1d'],
       },
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.M8G, ec2.InstanceSize.MEDIUM),
       machineImage: ec2.MachineImage.fromSsmParameter(
