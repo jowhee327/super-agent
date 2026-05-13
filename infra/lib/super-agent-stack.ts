@@ -56,8 +56,8 @@ export class SuperAgentStack extends cdk.Stack {
 
     const allowedCidr = new cdk.CfnParameter(this, 'AllowedCidr', {
       type: 'String',
-      default: '0.0.0.0/0',
-      description: 'CIDR allowed to access HTTP/HTTPS',
+      default: '18.182.154.174/32',
+      description: 'CIDR allowed to access HTTP/HTTPS (default: Leo control EC2 only)',
     });
 
     // Cognito parameters (only used when authMode=cognito)
