@@ -339,7 +339,7 @@ if [ "$SKIP_AGENTCORE" = false ]; then
 
   # Build environment variables JSON.
   # Priority: BEDROCK_API_KEY (bearer token) > BEDROCK_AK/SK (SigV4) > execution role.
-  ENV_VARS="{\"CLAUDE_CODE_USE_BEDROCK\":\"1\",\"ANTHROPIC_MODEL\":\"global.anthropic.claude-opus-4-6-v1\",\"AWS_REGION\":\"$REGION\",\"WORKSPACE_S3_REGION\":\"$REGION\""
+  ENV_VARS="{\"CLAUDE_CODE_USE_BEDROCK\":\"1\",\"ANTHROPIC_MODEL\":\"jp.anthropic.claude-opus-4-7\",\"AWS_REGION\":\"$REGION\",\"WORKSPACE_S3_REGION\":\"$REGION\""
   if [ -n "$BEDROCK_API_KEY" ]; then
     ENV_VARS="$ENV_VARS,\"AWS_BEARER_TOKEN_BEDROCK\":\"$BEDROCK_API_KEY\",\"BEDROCK_API_KEY\":\"$BEDROCK_API_KEY\",\"AWS_AUTH_SCHEME_PREFERENCE\":\"httpBearerAuth\""
   elif [ -n "$BEDROCK_AK" ] && [ -n "$BEDROCK_SK" ]; then
