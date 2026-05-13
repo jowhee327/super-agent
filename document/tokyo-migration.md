@@ -45,11 +45,28 @@
 
 ## 部署前 Checklist
 
-1. **申请模型权限**：去 Tokyo Bedrock Console → Model Access，开通：Claude Sonnet 4/4.5/4.6、Haiku 4.5、Opus 4.6（global profile）、Nova 2 Lite、Titan Embed v2
-2. **CDK Bootstrap**：`npx cdk bootstrap aws://<ACCOUNT>/ap-northeast-1`
-3. **EC2 Key Pair**：在 ap-northeast-1 创建好
-4. **可选**：ACM 证书（CloudFront 用）依然必须在 us-east-1，CDK 已正确处理
-5. 部署：`./infra/scripts/deploy-full.sh --region ap-northeast-1`
+1. **Tokyo Bedrock Console → Model Access** 开通：Claude Sonnet 4 / 4.5 / 4.6、Haiku 4.5、Opus 4.6（global profile）、Nova 2 Lite
+2. **us-east-1 Bedrock Console → Model Access** 开通（跨区调用，必需）：
+   - `amazon.nova-2-multimodal-embeddings-v1:0` —— RAG 文档索引 + Scope memory 向量化（`bedrock-embedder.ts`）
+   - `amazon.nova-canvas-v1:0` —— 头像生成（`avatarService.ts`）
+   - ⚠️ 东京 EC2 instance role 必须同时包含 `us-east-1` 的 Bedrock 调用权限（当前的 IAM policy `bedrock:InvokeModel*` resources `*` 已覆盖跨区，不需额外修改）
+3. **CDK Bootstrap**：`npx cdk bootstrap aws://<ACCOUNT>/ap-northeast-1`（CloudFront 场景还需 `us-east-1` bootstrap）
+4. **EC2 Key Pair**：在 ap-northeast-1 创建好
+5. **ACM 证书**（CloudFront 用）依然必须在 us-east-1，CDK 已正确处理
+6. 部署：`./infra/scripts/deploy-full.sh --region ap-northeast-1`
+
+## 跨区 Bedrock 调用总览（us-east-1）
+
+以下两个模型**在东京区不可用**，代码采用跨区 pin 到 `us-east-1` 的方案：
+
+| 模型 | 代码位置 | 覆盖 env | 用途 |
+|---|---|---|---|
+| `amazon.nova-canvas-v1:0` | `backend/src/services/avatarService.ts` | 无（代码锥死） | 头像生成 |
+| `amazon.nova-2-multimodal-embeddings-v1:0` | `backend/src/services/bedrock-embedder.ts` | `BEDROCK_EMBED_REGION` / `BEDROCK_EMBED_MODEL_ID` | RAG / vector memory |
+
+这些调用会产生跨区流量，但量不大（文本 embedding）。如果必须完全区域内闭环：
+- 头像：可用 Stable Diffusion XL 替代 Nova Canvas（东京可用、需重写请求体）
+- Embedding：只能换 Titan v2 或 Cohere Embed v4（东京区 `global.cohere.embed-v4:0` 可用），但需重写 embedder 请求/响应体且会丢弃现有向量数据
 
 ## 保留的 us-east-1 引用（合理）
 
